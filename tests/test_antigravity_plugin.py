@@ -105,7 +105,7 @@ class PackageTests(unittest.TestCase):
             self.assertEqual(responses[1]["result"]["serverInfo"]["version"],
                              (ROOT / "VERSION").read_text().strip())
             tools = {item["name"] for item in responses[2]["result"]["tools"]}
-            self.assertEqual(len(tools), 46)
+            self.assertEqual(len(tools), 47)
             self.assertIn("orbit_practice_suggest", tools)
             self.assertIn("orbit_practice_review", tools)
 

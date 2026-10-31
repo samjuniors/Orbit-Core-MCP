@@ -17,6 +17,7 @@ def preview(conn, root, project, args):
     if not isinstance(drafts, list) or not 1 <= len(drafts) <= MAX_DRAFT_TASKS:
         raise ValueError("Expected 1..12 draft task objects")
     proposed = {}
+    resolved_scopes = {}
     for item in drafts:
         if not isinstance(item, dict):
             raise ValueError("Every draft task must be an object")
@@ -26,6 +27,9 @@ def preview(conn, root, project, args):
         if name in proposed:
             raise ValueError("Duplicate task key in draft: " + name)
         _, step, role, goal, reason, paths, deps = orbit_tasks.spec(task)
+        # Draft waves must honor real filesystem aliases just like reserve().
+        # Never expose resolved symlink targets or assume a preview grants writes.
+        resolved_scopes[name] = orbit_tasks._resolved_scopes(root, paths)
         proposed[name] = {
             "task_key": name, "step": step, "role": role,
             "goal": goal, "reason": reason, "write_paths": paths,
@@ -121,12 +125,14 @@ def preview(conn, root, project, args):
         scopes = []
         for key in eligible:
             task = proposed[key]
-            if any(orbit_tasks._collisions(task["write_paths"], paths) for paths in scopes):
+            if any(orbit_tasks._collisions(task["write_paths"], paths)
+                   or orbit_tasks._collisions(resolved_scopes[key], resolved)
+                   for paths, resolved in scopes):
                 continue
             if len(wave) == orbit_tasks.MAX_CONCURRENT:
                 break
             wave.append(key)
-            scopes.append(task["write_paths"])
+            scopes.append((task["write_paths"], resolved_scopes[key]))
         if not wave:
             return {**base, "status": "HOLD_UNSCHEDULABLE_DAG", "review_waves": []}
         waves.append({

@@ -7,6 +7,65 @@ All notable changes are recorded under [Semantic Versioning](https://semver.org/
 Future v0.28.0 work is tracked independently. It is not included in
 v0.27.0, and this planning marker does not authorize publication.
 
+## [0.28.0] — Adaptive software delivery blueprint (DEVELOPMENT; NOT RELEASED)
+
+### Highlights
+
+- **Orbit-native end-to-end delivery preview:** `orbit_software_delivery_preview`
+  proposes a bounded, project-specific cross-specialist task DAG for a
+  new/existing/stalled product, feature, fix, redesign or maintenance request.
+  It reuses the existing 12 native Orbit roles, current intake, durable
+  task-ledger constraints and Swarm draft validation. The first reviewed
+  *vertical slice* leads into independently checked integration, QA,
+  security, documentation and release gates.
+- **No unwanted automation:** tool is strictly read-only and emits no
+  writable scopes by default. The owner must review actual project paths,
+  approve the plan and authorize each native host tool invocation.
+  It never starts ECC/Claude/Codex/Gemini subprocesses, chooses models,
+  installs third-party agents or certifies test output.
+- **Operations and platforms:** bounded adaptation for websites, web apps,
+  desktop/mobile apps, APIs, CLIs, libraries, plugins and other approved
+  product types; smaller fail-first plans for fixes/debugging.
+- **Reference guidance:** Original implementation informed by the MIT
+  [ECC](https://github.com/affaan-m/ECC) orchestrator/vertical-slice
+  research; no ECC source or agent templates were copied.
+
+### Not yet certified
+
+- Native host execution with actual user approval; completed end-to-end
+  products on real Windows/Linux/macOS and independent security/rollback
+  acceptance. Development-source tests do not constitute a public release.
+  The published v0.27.0 and any future v0.27.1 releases remain untouched.
+
+### Install and upgrade
+
+- **Development source only:** this unreleased version can be evaluated in a
+  disposable project/host; do not mistake the development branch for a
+  published or owner-approved installer. The exact official prerelease
+  download procedure is documented in the existing release process and
+  will only apply after release QA and explicit owner authorization.
+- No automatic ECC installation, model provider, cloud service, GUI
+  dependency or native subagent runtime is included.
+
+### Compatibility
+
+- Reuses Orbit's preexisting native agent roles, host-specific adapters,
+  approved intake, project memory, SQLite task ledger and two-worker Swarm.
+  Existing v0.27.x user data and prior release tags remain unchanged.
+- A new read-only MCP tool expands the development inventory from 46 to
+  **47**. Actual host tool availability depends on installation and restart.
+- Unsupported native host tools require explicit serial/fallback planning,
+  not fabricated agent execution.
+
+### Known limitations
+
+- The preview cannot automatically produce a complete verified product;
+  agents must be invoked by the connected coding host with real permission,
+  scoped source changes and independently executed QA.
+- Authentication/permission dialogs, real native interruption/restart,
+  independent security/provenance, production rollout, and second-host
+  acceptance are not certified by development CI alone.
+
 ## [0.27.1] — Rename compatibility prerelease candidate (2026-10-31)
 
 ### Highlights

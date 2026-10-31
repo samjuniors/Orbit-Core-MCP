@@ -64,6 +64,7 @@ def preview(conn, root, project, a):
                 not orbit_delegation.ALLOWED_TOOL_PATTERN.fullmatch(t)
                 for t in tools) or len(set(tools)) != len(tools)):
         raise ValueError("Invalid or duplicate reported host tool names")
+    mode = orbit_delegation.workspace_mode(a)
     width = a.get("max_parallel", orbit_tasks.MAX_CONCURRENT)
     if type(width) is not int or not 1 <= width <= orbit_tasks.MAX_CONCURRENT:
         raise ValueError("max_parallel must be 1..2")
@@ -82,6 +83,8 @@ def preview(conn, root, project, a):
         "host": host,
         "reported_native_tool": native,
         "tool_availability_caller_reported": True,
+        "host_workspace_mode_reported": mode,
+        "host_workspace_writes_verified": False,
         "agent_spawned": False,
         "approval_verified": False,
         "host_liveness_verified": False,
@@ -189,6 +192,14 @@ def preview(conn, root, project, a):
             deferred.append({"task_key": key, "reason": "DEPENDENCY_REVIEW_REQUIRED",
                              "unaccepted_dependencies": unmet})
             continue
+        if mode == "read-only" and task["write_paths"]:
+            deferred.append({
+                "task_key": key, "reason": "HOST_WORKSPACE_READ_ONLY",
+                "next": ("Do not reserve a writable specialist in this host "
+                         "session. Obtain legitimate host permissions first "
+                         "or select a read-only task."),
+            })
+            continue
         clashes = [other for other, scopes, resolved in selected_scopes
                    if orbit_tasks._collisions(task["write_paths"], scopes)
                    or orbit_tasks._collisions(task["resolved_write_paths"], resolved)]
@@ -207,8 +218,12 @@ def preview(conn, root, project, a):
         })
         selected_scopes.append((key, task["write_paths"], task["resolved_write_paths"]))
 
+    read_only_blocked = any(row["reason"] == "HOST_WORKSPACE_READ_ONLY"
+                            for row in deferred)
     state = ("HOLD_NATIVE_TOOL_UNAVAILABLE" if not native else
-             "READY_FOR_HOST_REVIEW" if ready else "NO_READY_TASKS")
+             "READY_FOR_HOST_REVIEW" if ready else
+             "HOLD_HOST_WORKSPACE_READ_ONLY" if read_only_blocked else
+             "NO_READY_TASKS")
     fallback = (None if native or not ready else {
         "mode": "MANUAL_SERIAL_REVIEW_ONLY",
         "task_key": ready[0]["task_key"],
@@ -224,6 +239,9 @@ def preview(conn, root, project, a):
             "serial_fallback": fallback,
             "deferred": deferred, "candidate_count": len(ready),
             "native_invocation_required": True,
-            "reason": ("Real host capability and permission must still be verified."
+            "reason": ("Observed read-only host workspace cannot satisfy "
+                       "writable tasks; real host permissions are still authoritative."
+                       if state == "HOLD_HOST_WORKSPACE_READ_ONLY" else
+                       "Real host capability and permission must still be verified."
                        if native else
                        "Use a supported native host tool or explicitly authorized serial fallback; never fabricate an invocation.")}

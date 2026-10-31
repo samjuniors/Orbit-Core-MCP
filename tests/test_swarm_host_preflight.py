@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import sys
 import tempfile
@@ -83,7 +84,7 @@ class HostPreflightTests(unittest.TestCase):
         tool = next(x for x in orbit_mcp.TOOLS
                     if x["name"] == "orbit_swarm_host_preflight")
         self.assertTrue(tool["annotations"]["readOnlyHint"])
-        self.assertEqual(len(orbit_mcp.TOOLS), 46)
+        self.assertEqual(len(orbit_mcp.TOOLS), 47)
 
     def test_two_disjoint_reserved_tasks_have_two_complete_packets(self):
         self.create("api", paths=["backend/"])
@@ -104,6 +105,36 @@ class HostPreflightTests(unittest.TestCase):
         self.assertEqual(result["status"], "HOLD_HOST_PREFLIGHT")
         self.assertEqual(result["handoffs"], [])
         self.assertIn("orbit_task_release", result["recovery"])
+
+    def test_reported_read_only_host_holds_writable_batch_without_partial_handoffs(self):
+        self.create("api", paths=["backend/"])
+        self.create("ui", paths=["frontend/"])
+        r1 = self.reserve("api")
+        r2 = self.reserve("ui")
+        before = self.db.total_changes
+        out = self.preflight([self.slot("api", r1), self.slot("ui", r2)],
+                             host_workspace_mode="read-only")
+        self.assertEqual(out["status"], "HOLD_HOST_PREFLIGHT")
+        self.assertEqual(out["handoffs"], [])
+        self.assertEqual(
+            [issue["status"] for issue in out["issues"]],
+            ["HOLD_HOST_WORKSPACE_READ_ONLY", "HOLD_HOST_WORKSPACE_READ_ONLY"])
+        self.assertEqual(out["host_workspace_mode_reported"], "read-only")
+        self.assertFalse(out["host_workspace_writes_verified"])
+        self.assertFalse(out["native_invoked"])
+        self.assertEqual(self.db.total_changes, before)
+
+    def test_read_only_native_task_may_handoff_in_read_only_workspace(self):
+        self.create("inspect", paths=[])
+        revision = self.reserve("inspect")
+        out = self.preflight([self.slot("inspect", revision)],
+                             host_workspace_mode="read-only")
+        self.assertEqual(out["status"], "HOST_INVOCATIONS_REQUIRED")
+        self.assertEqual(out["handoffs"][0]["handoff"]["write_paths"], [])
+        self.assertFalse(out["host_workspace_writes_verified"])
+        with self.assertRaises(ValueError):
+            self.preflight([self.slot("inspect", revision)],
+                           host_workspace_mode="force-write")
 
     def test_duplicate_and_stale_revisions_hold(self):
         self.create("api")
@@ -166,6 +197,48 @@ class HostPreflightTests(unittest.TestCase):
         self.assertEqual(out["handoffs"], [])
         self.assertIn("HOLD_WRITE_SCOPE_CONFLICT",
                       [i["status"] for i in out["issues"]])
+
+    def test_resolved_parallel_alias_collision_holds_all_handoffs(self):
+        real = self.root / "src" / "real"
+        real.mkdir(parents=True)
+        try:
+            os.symlink(real, self.root / "src" / "alias",
+                       target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest("Symlinks unavailable on this host: " + type(exc).__name__)
+        self.create("real", paths=["src/real/"])
+        self.create("alias", paths=["src/alias/"])
+        # An imported/corrupt ledger can bypass the normal reservation
+        # collision check; final batch preflight must still block it.
+        self.db.execute("UPDATE orbit_agent_tasks SET status='RESERVED',revision=2")
+        self.db.commit()
+        before = self.db.total_changes
+        out = self.preflight([self.slot("real", 2), self.slot("alias", 2)])
+        self.assertEqual(out["status"], "HOLD_HOST_PREFLIGHT")
+        self.assertEqual(out["handoffs"], [])
+        self.assertIn("HOLD_WRITE_SCOPE_CONFLICT",
+                      [issue["status"] for issue in out["issues"]])
+        self.assertEqual(self.db.total_changes, before)
+        self.assertFalse(out["native_invoked"])
+
+    def test_symlink_escape_added_after_reservation_blocks_batch(self):
+        self.create("api", paths=["src/late/"])
+        revision = self.reserve("api")
+        self.other.mkdir(parents=True, exist_ok=True)
+        (self.root / "src").mkdir(exist_ok=True)
+        try:
+            os.symlink(self.other, self.root / "src" / "late",
+                       target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest("Symlinks unavailable on this host: " + type(exc).__name__)
+        before = self.db.total_changes
+        out = self.preflight([self.slot("api", revision)])
+        self.assertEqual(out["status"], "HOLD_HOST_PREFLIGHT")
+        self.assertEqual(out["handoffs"], [])
+        self.assertIn("HOLD_UNSAFE_WRITE_SCOPE",
+                      [issue["status"] for issue in out["issues"]])
+        self.assertEqual(self.db.total_changes, before)
+        self.assertFalse(out["native_invoked"])
 
     def test_missing_and_wrong_project_rejected(self):
         self.create("api")

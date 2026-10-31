@@ -100,7 +100,7 @@ class ProjectPulseTests(unittest.TestCase):
                 self.assertLessEqual(len(encoded), budget)
         tool = next(t for t in orbit_mcp.TOOLS if t["name"] == "orbit_project_resume")
         self.assertIn("pulse", tool["inputSchema"]["properties"])
-        self.assertEqual(len(orbit_mcp.TOOLS), 46)
+        self.assertEqual(len(orbit_mcp.TOOLS), 47)
 
 
 if __name__ == "__main__":

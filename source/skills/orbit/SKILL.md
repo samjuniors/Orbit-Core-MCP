@@ -16,6 +16,17 @@ The **active host model** decides what to do; Orbit's local MCP supplies bounded
 
 **Lifecycle routing:** On any project, call `orbit_project_resume` once if connected, verify Git/changed files/tests, then call `orbit_project_action` with the user's plain-language action when an explicit situational recommendation helps. Recognize start, pause/stop, continue/resume, debug/fix, add feature, redesign, refactor, test/review and freely worded custom goals. The MCP returns advice, not a hidden action executor. Classify new/partially built/existing/completed/maintained/stalled using actual evidence; user-reported maturity is explicitly labeled. Never reopen a DONE run.
 
+**v0.28 adaptive software delivery:** For a substantial new/existing/stalled
+software product, feature, redesign, fix or maintenance objective, read
+`references/SOFTWARE-DELIVERY.md` and invoke the read-only
+`orbit_software_delivery_preview` only after verifying project context
+and relevant user choices. Review its specialist DAG, quality criteria and
+actual writable file scopes with the user; a 47-tool inventory or a plan
+does NOT prove native execution, independent tests or release acceptance.
+Do not install/copy ECC agents, invoke external model CLIs or overwrite
+existing tasks. Continue through real host-native delegation and existing
+task lifecycle only after approval. In smaller cases stay focused.
+
 **Proportional workflow:** New empty folder → adaptive intake and approved plan. Existing or partial product → inspect actual source, owner docs and checkpoint, resume the matching unfinished build or start a scoped `orbit_build_begin` using `change_kind` plus `baseline_reference`. DONE product → create a *different* build ID with `change_kind` and `change_from` referencing its DONE run. Small fixes start at IMPLEMENT, but still require reproduction and targeted/regression testing. Features, redesigns and refactors start at PLAN with actual user approval; preserve data/API contracts and old build history.
 
 **M2 genuine host delegation:** When a specialist step benefits from an actual separate agent, register the scoped `orbit_task_plan` and reserve it after real host/user consent. Use read-only `orbit_task_handoff` with `host` and the *actually exposed* `available_host_tools`; on `HOST_INVOCATION_REQUIRED`, the lead IDE model invokes the matching **native** tool directly (e.g. `invoke_subagent`, `spawn_agent`, `Agent`/`Task`) with the bounded handoff. The MCP itself does **not** spawn agents. A returned packet is not permission or proof; only after a real host call yields a session reference call `orbit_task_started`, later `orbit_task_report` and separate `orbit_task_review` with genuine diff/tests evidence. On HOLD/no native tool, release unused reservation, work serially within existing permissions, or provide a safe handoff; never add a hidden model runner. `include_research=true` passes only untrusted, project-scoped source links from Evidence Lens, not external instructions. Host names/tool schemas can change; confirm real availability rather than assuming names from this skill.

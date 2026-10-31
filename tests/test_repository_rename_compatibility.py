@@ -58,14 +58,14 @@ class RepoRenameCompatibilityTests(unittest.TestCase):
 
     def test_legacy_mcp_server_and_extension_identifiers_are_preserved(self):
         self.assertEqual(installer.SERVER,"orbit-core-native")
-        self.assertEqual(orbit_mcp.VERSION,"0.27.1")
+        self.assertEqual(orbit_mcp.VERSION,"0.28.0")
         self.assertIn("orbit-core-mcp",(ROOT/"scripts/build_antigravity_plugin.py").read_text(encoding="utf-8"))
         self.assertIn("orbit-core-mcp",(ROOT/"scripts/build_plugin_suite.py").read_text(encoding="utf-8"))
 
     def test_version_matches_without_rewriting_future_roadmap(self):
-        self.assertEqual((ROOT/"VERSION").read_text(encoding="utf-8").strip(),"0.27.1")
-        self.assertEqual(installer.VERSION,"0.27.1")
-        self.assertEqual((ROOT/"NEXT_VERSION").read_text(encoding="utf-8").strip(),"0.28.0")
+        self.assertEqual((ROOT/"VERSION").read_text(encoding="utf-8").strip(),"0.28.0")
+        self.assertEqual(installer.VERSION,"0.28.0")
+        self.assertEqual((ROOT/"NEXT_VERSION").read_text(encoding="utf-8").strip(),"0.29.0")
 
 if __name__=="__main__":
     unittest.main()

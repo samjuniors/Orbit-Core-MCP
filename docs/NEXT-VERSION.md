@@ -1,3 +1,27 @@
+# Orbit Core — current development track (2026-10-31)
+
+**Engineering state:** `main` is at v0.27.1 **source**, but the latest
+verified public prerelease may still be v0.27.0; consult the canonical
+[release page](https://github.com/samjuniors/Orbit-Core/releases) for
+actual tags/assets. The v0.27.1 rename-compatibility PR #67 has been
+merged into main as engineering source. Never infer publication from
+a merged PR.
+
+**v0.28.0 proposed development:** `dev/v0.28.0-delivery-blueprint`
+extends the existing Orbit native-agent Swarm by producing an adaptive
+read-only delivery plan across software roles and product types, inspired
+by the [ECC research reference](https://github.com/affaan-m/ECC).
+This is **source development only**, requires real user permissions
+and host-native execution, and is not a new model/automatic coding service.
+The current plan targets safe vertical slices, implementation, QA,
+security review and release approval, with 47 preview tools in the
+development branch. No v0.28.0 tag or publication authorized.
+
+Older historical progress snapshots below are retained and superseded
+by this current summary where they contradict a verified release/branch.
+
+---
+
 # Orbit Core — current release and roadmap status
 
 **Current public prerelease:** [v0.27.0](https://github.com/samjuniors/Orbit-Core/releases/tag/v0.27.0)

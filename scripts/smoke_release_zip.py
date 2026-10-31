@@ -79,6 +79,11 @@ def smoke(root=ROOT):
             {"jsonrpc":"2.0","id":3,"method":"tools/call",
              "params":{"name":"orbit_project_resume",
                        "arguments":{"project_root":str(workspace),"project":"orbit-zip-smoke"}}},
+            {"jsonrpc":"2.0","id":4,"method":"tools/call",
+             "params":{"name":"orbit_software_delivery_preview",
+                       "arguments":{"project_root":str(workspace),"project":"orbit-zip-smoke",
+                                    "product_type":"web-app","operation":"build","maturity":"new",
+                                    "objective":"Create a disposable end-to-end test application"}}},
         ]
         result = subprocess.run([sys.executable, str(server)],
                                 input="".join(json.dumps(msg)+"\n" for msg in calls),
@@ -87,15 +92,27 @@ def smoke(root=ROOT):
         if result.returncode != 0:
             raise RuntimeError("Packaged MCP server failed: " + result.stderr[-1600:])
         replies = [json.loads(line) for line in result.stdout.splitlines()]
-        if len(replies) != 3 or any("error" in reply for reply in replies):
+        if len(replies) != 4 or any("error" in reply for reply in replies):
             raise RuntimeError("Invalid packaged MCP JSON-RPC results")
         tools = {tool["name"] for tool in replies[1]["result"]["tools"]}
         expected = {"orbit_project_resume", "orbit_project_action", "orbit_memory_recall",
-                    "orbit_project_checkpoint", "orbit_build_begin", "orbit_swarm_preview", "orbit_swarm_draft_preview", "orbit_swarm_host_preflight", "orbit_swarm_integration_review"}
-        if not expected.issubset(tools) or len(tools) != 46:
+                    "orbit_project_checkpoint", "orbit_build_begin", "orbit_swarm_preview", "orbit_swarm_draft_preview", "orbit_swarm_host_preflight", "orbit_swarm_integration_review", "orbit_software_delivery_preview"}
+        if not expected.issubset(tools) or len(tools) != 47:
             raise RuntimeError("Packaged MCP tool inventory mismatch")
         if replies[2]["result"].get("isError"):
             raise RuntimeError("Packaged resume returned tool error")
+        response = replies[3]["result"]
+        if response.get("isError"):
+            raise RuntimeError("Packaged delivery blueprint returned tool error")
+        content = response.get("content", [])
+        if not content or content[0].get("type") != "text":
+            raise RuntimeError("No delivery blueprint content in MCP response")
+        parsed = json.loads(content[0]["text"])
+        if (parsed.get("status") != "BLUEPRINT_READY"
+                or parsed.get("agent_spawned") is not False
+                or parsed.get("state_written") is not False):
+            raise RuntimeError("Packaged delivery preview failed read-only gate")
+
         uninstall = subprocess.run([sys.executable, str(pkg / 'orbit_setup.py'), 'uninstall',
                                    '--scope', 'project', '--project', str(workspace),
                                    '--hosts', 'codex', '--apply'],capture_output=True,text=True,

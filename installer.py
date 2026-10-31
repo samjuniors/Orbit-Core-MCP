@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 PACKAGE = Path(__file__).resolve().parent
-VERSION = '0.27.1'
+VERSION = '0.28.0'
 SERVER = "orbit-core-native"
 HOSTS = ("antigravity", "codex", "claude-code", "vscode")
 SCOPES = ("machine", "project")
@@ -395,7 +395,7 @@ def plan(project: str|Path|None=None, hosts=HOSTS, scope='project') -> list[Chan
     runtime=runtime_folder()
     if any(p.is_symlink() for p in [runtime,runtime.parent]):raise SetupError('Runtime directory is a symlink')
     changes=[]
-    for name in ['orbit_mcp.py','orbit_tasks.py','orbit_capabilities.py','orbit_preview.py','orbit_browser.py','orbit_build.py','orbit_intake.py','orbit_decisions.py','orbit_updates.py','orbit_evidence.py','orbit_delegation.py','orbit_portable.py','orbit_swarm.py','orbit_swarm_draft.py','orbit_swarm_host.py','orbit_swarm_integrity.py','orbit_pulse.py']:
+    for name in ['orbit_mcp.py','orbit_tasks.py','orbit_capabilities.py','orbit_preview.py','orbit_browser.py','orbit_build.py','orbit_intake.py','orbit_decisions.py','orbit_updates.py','orbit_evidence.py','orbit_delegation.py','orbit_portable.py','orbit_swarm.py','orbit_swarm_draft.py','orbit_delivery.py','orbit_swarm_host.py','orbit_swarm_integrity.py','orbit_pulse.py']:
         p=src/'runtime'/name
         same_or_create(changes,runtime/name,p.read_bytes(),None,'Shared Orbit stdio MCP runtime')
     def add_references(dest: Path, boundary: Path) -> None:

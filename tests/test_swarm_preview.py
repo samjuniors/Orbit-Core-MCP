@@ -62,7 +62,7 @@ class SwarmPreviewTests(unittest.TestCase):
         self.assertTrue(tool["annotations"]["readOnlyHint"])
         self.assertTrue(tool["annotations"]["idempotentHint"])
         self.assertFalse(tool["annotations"]["destructiveHint"])
-        self.assertEqual(len(orbit_mcp.TOOLS), 46)
+        self.assertEqual(len(orbit_mcp.TOOLS), 47)
 
     def test_different_paths_parallel_and_strict_cap(self):
         self.task("backend", paths=["src/backend/"])
@@ -78,6 +78,43 @@ class SwarmPreviewTests(unittest.TestCase):
         self.assertEqual(self.conn.total_changes, before)
         one = self.preview(max_parallel=1)
         self.assertEqual(len(one["ready_now"]), 1)
+
+    def test_read_only_workspace_defers_writable_tasks_before_reservation(self):
+        self.task("api", paths=["src/api/"])
+        self.task("audit", paths=[])
+        before = self.conn.total_changes
+        result = self.preview(host_workspace_mode="read-only")
+        self.assertEqual(result["status"], "READY_FOR_HOST_REVIEW")
+        self.assertEqual([t["task_key"] for t in result["ready_now"]], ["audit"])
+        self.assertIn(
+            {"task_key": "api", "reason": "HOST_WORKSPACE_READ_ONLY",
+             "next": ("Do not reserve a writable specialist in this host "
+                      "session. Obtain legitimate host permissions first "
+                      "or select a read-only task.")},
+            result["deferred"])
+        self.assertEqual(result["host_workspace_mode_reported"], "read-only")
+        self.assertFalse(result["host_workspace_writes_verified"])
+        self.assertFalse(result["state_written"])
+        self.assertEqual(self.conn.total_changes, before)
+        self.conn.execute(
+            "UPDATE orbit_agent_tasks SET status='REVIEW_ACCEPTED' "
+            "WHERE task_key='audit'")
+        self.conn.commit()
+        blocked = self.preview(host_workspace_mode="read-only")
+        self.assertEqual(blocked["status"], "HOLD_HOST_WORKSPACE_READ_ONLY")
+        self.assertEqual(blocked["ready_now"], [])
+        self.assertEqual(blocked["candidate_count"], 0)
+        self.assertIsNone(blocked["serial_fallback"])
+
+    def test_host_workspace_mode_is_bounded_and_optional(self):
+        self.task("api", paths=["src/api/"])
+        self.assertEqual(
+            self.preview(host_workspace_mode="workspace-write")["status"],
+            "READY_FOR_HOST_REVIEW")
+        self.assertEqual(self.preview()["host_workspace_mode_reported"], "unknown")
+        for mode in ("unrestricted", "admin", True, None, [], {}):
+            with self.subTest(mode=mode), self.assertRaises(ValueError):
+                self.preview(host_workspace_mode=mode)
 
     def test_directory_and_file_overlap_are_serialized(self):
         self.task("a", paths=["src/App/"])

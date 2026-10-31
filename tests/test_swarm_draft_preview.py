@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import sys
 import tempfile
@@ -71,7 +72,7 @@ class SwarmDraftTests(unittest.TestCase):
         self.assertEqual(self.conn.total_changes, before)
         tool = next(t for t in orbit_mcp.TOOLS if t["name"] == "orbit_swarm_draft_preview")
         self.assertTrue(tool["annotations"]["readOnlyHint"])
-        self.assertEqual(len(orbit_mcp.TOOLS), 46)
+        self.assertEqual(len(orbit_mcp.TOOLS), 47)
 
     def test_dependency_waves_are_ordered(self):
         items = [draft("qa", dependencies=["api", "ui"], paths=["tests/"]),
@@ -89,6 +90,34 @@ class SwarmDraftTests(unittest.TestCase):
         result = self.preview(tasks)
         self.assertEqual([v["task_keys"] for v in result["review_waves"]],
                          [["one"], ["two"]])
+
+    def test_parallel_symlink_aliases_are_serialized_before_registration(self):
+        real = self.root / "src" / "real"
+        real.mkdir(parents=True)
+        try:
+            os.symlink(real, self.root / "src" / "alias", target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest("Symlinks unavailable on this host: " + type(exc).__name__)
+        before = self.conn.total_changes
+        result = self.preview([draft("real", paths=["src/real/"]),
+                               draft("alias", paths=["src/alias/"])])
+        self.assertEqual(result["status"], "DRAFT_VALIDATED")
+        self.assertEqual([w["task_keys"] for w in result["review_waves"]],
+                         [["alias"], ["real"]])
+        self.assertEqual(before, self.conn.total_changes)
+        self.assertFalse(result["agent_spawned"])
+
+    def test_workspace_escape_is_rejected_before_preview_approves_wave(self):
+        (self.root / "src").mkdir()
+        try:
+            os.symlink(self.other_root, self.root / "src" / "outside",
+                       target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest("Symlinks unavailable on this host: " + type(exc).__name__)
+        before = self.conn.total_changes
+        with self.assertRaisesRegex(ValueError, "Unsafe resolved writable scope"):
+            self.preview([draft("unsafe", paths=["src/outside/results.py"])])
+        self.assertEqual(before, self.conn.total_changes)
 
     def test_parallel_cap_never_exceeds_existing_ledger_cap(self):
         result = self.preview([draft(f"task-{n}", paths=[f"src/{n}/"])

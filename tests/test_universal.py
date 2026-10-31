@@ -17,13 +17,19 @@ class UniversalSetupTests(unittest.TestCase):
         self.addCleanup(self.t.cleanup)
         self.home=Path(self.t.name)/'home'
         self.old=os.environ.get('ORBIT_UNIVERSAL_HOME')
+        self.old_setup=os.environ.get('ORBIT_SETUP_HOME')
         os.environ['ORBIT_UNIVERSAL_HOME']=str(self.home)
+        # Installer also maintains a launcher under user_home(), distinct
+        # from runtime_folder(). Keep all tests away from the real OS home.
+        os.environ['ORBIT_SETUP_HOME']=str(self.home)
         self.addCleanup(self.restore)
         self.project=Path(self.t.name)/'orbit-todo-lab';self.project.mkdir()
 
     def restore(self):
         if self.old is None:os.environ.pop('ORBIT_UNIVERSAL_HOME',None)
         else:os.environ['ORBIT_UNIVERSAL_HOME']=self.old
+        if self.old_setup is None:os.environ.pop('ORBIT_SETUP_HOME',None)
+        else:os.environ['ORBIT_SETUP_HOME']=self.old_setup
 
     def test_prior_edge_qa_candidate_is_safe_for_backed_up_upgrade(self):
         # Previous official c027e73 browser-fix candidate was omitted from
@@ -69,6 +75,7 @@ class UniversalSetupTests(unittest.TestCase):
         self.assertTrue((self.project/'.agents/agents/orbit.md').exists())
         self.assertTrue((self.project/'.claude/agents/orbit-frontend.md').exists())
         self.assertTrue((self.project/'.codex/config.toml').exists())
+        self.assertTrue((self.home/'0.28.0/orbit_delivery.py').is_file())
         self.assertEqual(set(c.action for c in installer.plan(self.project,scope='project')),{'SKIP'})
 
     def test_existing_customization_refused(self):
@@ -149,7 +156,7 @@ class UniversalSetupTests(unittest.TestCase):
         def req(i,method,params=None):return {'jsonrpc':'2.0','id':i,'method':method,'params':params or {}}
         def call(i,name,args):return req(i,'tools/call',{'name':name,'arguments':args})
         initial=rpc([req(1,'initialize',{'protocolVersion':'2025-11-25'}),req(2,'tools/list')])
-        self.assertEqual(len(initial[1]['result']['tools']),46)
+        self.assertEqual(len(initial[1]['result']['tools']),47)
         def tooldata(r):return json.loads(r['result']['content'][0]['text'])
         save_args={'project':'orbit-todo-lab','key':'goal','kind':'decision','summary':'Local SQLite API, no cloud sync','source':'test','confirm_write':True}
         result=rpc([call(3,'orbit_memory_save',save_args)])[0]

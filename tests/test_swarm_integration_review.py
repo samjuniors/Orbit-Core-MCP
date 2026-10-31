@@ -105,7 +105,7 @@ class SwarmIntegrationReviewTests(unittest.TestCase):
         tool = next(t for t in orbit_mcp.TOOLS
                     if t["name"] == "orbit_swarm_integration_review")
         self.assertTrue(tool["annotations"]["readOnlyHint"])
-        self.assertEqual(len(orbit_mcp.TOOLS), 46)
+        self.assertEqual(len(orbit_mcp.TOOLS), 47)
 
     def test_file_change_invalidates_previous_qa(self):
         self.build()
